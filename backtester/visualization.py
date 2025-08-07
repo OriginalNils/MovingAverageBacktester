@@ -1,51 +1,53 @@
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 def plot_performance(portfolio: pd.DataFrame, signals: pd.DataFrame, ticker: str):
     """
-    Plots the performance of the backtest.
-
-    Args:
-    portfolio (pd.DataFrame): The portfolio DataFrame from the backtester.
-    signals (pd.DataFrame): The DataFrame with the original signals.
-    ticker (str): The name of the traded ticker.
+    Plot the performance of the backtest with interactive Plotly charts.
     """
-    fig, (ax1, ax2) = plt.subplots(
-        2, 1, 
-        figsize=(12, 10), 
-        gridspec_kw={'height_ratios': [1, 2]},
-        sharex=True
+    fig = make_subplots(
+        rows=2, cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.1,
+        subplot_titles=('Portfolio Development', 'Price, MAs & trading signals'),
+        row_heights=[0.3, 0.7]
     )
-    fig.suptitle(f'Backtest Performance for {ticker}', fontsize=16)
 
-    # --- Plot 1: Portfolio-Wert, Cash und Holdings als Linien ---
-    ax1.plot(portfolio.index, portfolio['total'], label='Total Portfolio Value', color='g', linewidth=2)
-    ax1.plot(portfolio.index, portfolio['cash'], label='Cash', color='b', linestyle='--', alpha=0.7)
-    ax1.plot(portfolio.index, portfolio['holdings'], label='Holdings Value', color='orange', linestyle='--', alpha=0.7)
-    
-    ax1.set_title('Portfolio Value, Cash, and Holdings')
-    ax1.set_ylabel('Value ($)')
-    ax1.legend(loc='upper left')
-    ax1.grid(True)
+    # --- Plot 1 ---
+    fig.add_trace(go.Scatter(
+        x=portfolio.index, y=portfolio['total'], name='total value',
+        line=dict(color='green', width=2)
+    ), row=1, col=1)
 
-    # --- Plot 2: Preis und Trades (unverändert) ---
-    ax2.plot(signals.index, signals['Close'], label='Close Price', color='k', alpha=0.7)
-    ax2.plot(signals.index, signals['short_ma'], label='50-Day MA', color='b', linestyle='--')
-    ax2.plot(signals.index, signals['long_ma'], label='200-Day MA', color='orange', linestyle='--')
-    
+    # --- Plot 2 ---
+    # Price and MAs
+    fig.add_trace(go.Scatter(x=signals.index, y=signals['Close'], name='closing price', line=dict(color='grey')), row=2, col=1)
+    fig.add_trace(go.Scatter(x=signals.index, y=signals['short_ma'], name='50-day MA', line=dict(color='#73c7ff', dash='dash')), row=2, col=1)
+    fig.add_trace(go.Scatter(x=signals.index, y=signals['long_ma'], name='200-day MA', line=dict(color='orange', dash='dash')), row=2, col=1)
+
+    # buy signals
     buy_signals = signals[signals['positions'] == 1.0]
-    ax2.plot(buy_signals.index, signals['short_ma'][buy_signals.index],
-             '^', markersize=10, color='g', label='Buy Signal')
-    
+    fig.add_trace(go.Scatter(
+        x=buy_signals.index, y=buy_signals['short_ma'], name='buy signal',
+        mode='markers', marker=dict(color='green', size=10, symbol='triangle-up')
+    ), row=2, col=1)
+
+    # selling signals
     sell_signals = signals[signals['positions'] == -1.0]
-    ax2.plot(sell_signals.index, signals['short_ma'][sell_signals.index],
-             'v', markersize=10, color='r', label='Sell Signal')
+    fig.add_trace(go.Scatter(
+        x=sell_signals.index, y=sell_signals['short_ma'], name='selling signals',
+        mode='markers', marker=dict(color='red', size=10, symbol='triangle-down')
+    ), row=2, col=1)
 
-    ax2.set_title('Stock Price, MAs, and Trades')
-    ax2.set_ylabel('Price ($)')
-    ax2.set_xlabel('Date')
-    ax2.legend(loc='upper left')
-    ax2.grid(True)
-
-    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-    plt.show()
+    # --- Layout adjustments ---
+    fig.update_layout(
+        title_text=f'Backtest performance for {ticker}',
+        height=700,
+        showlegend=True,
+        legend_traceorder="reversed" 
+    )
+    fig.update_yaxes(title_text="value ($)", row=1, col=1)
+    fig.update_yaxes(title_text="price ($)", row=2, col=1)
+    
+    return fig

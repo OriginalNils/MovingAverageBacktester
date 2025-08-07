@@ -65,7 +65,7 @@ To run this application locally, please follow these steps.
 #### 1. Clone the repository:
 
 ```bash
-git clone https://github.com/your_username/MovingAverageBacktester.git
+git clone https://github.com/OriginalNils/TradingStrategyBacktester.git
 cd MovingAverageBacktester
 ```
 

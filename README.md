@@ -35,7 +35,7 @@ git clone https://github.com/your_username/MovingAverageBacktester.git
 cd MovingAverageBacktester
 ```
 
-####  Install dependencies:
+#### 2. Install dependencies:
 
 The `requirements.txt` file contains all necessary packages. Install them with a single command:
 

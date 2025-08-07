@@ -1,4 +1,5 @@
 pandas
-matplotlib
+streamlit
+plotly
 # Install our data importer directly from GitHub
 -e git+https://github.com/OriginalNils/FinancialDataImporter.git#egg=financialdataimporter

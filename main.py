@@ -1,11 +1,13 @@
 from financialdataimporter import YahooFinanceImporter
 from backtester.strategy import MovingAverageStrategy
+from backtester.backtester import Backtester
+from backtester.visualization import plot_performance
 
 def run_backtest():
     # --- 1. Load Data ---
     importer = YahooFinanceImporter()
-    ticker = 'TSLA'
-    start_date = '2020-01-01'
+    ticker = 'AAPL'
+    start_date = '2018-01-01'
     end_date = '2025-07-29' 
 
     print(f"Loading data for {ticker}...")
@@ -19,8 +21,20 @@ def run_backtest():
     strategy = MovingAverageStrategy(stock_data, short_window, long_window)
     signals = strategy.generate_signals()
 
-    print("\nData with trading signals (1.0 = buy, -1.0 = sell):")
-    print(signals.tail(10))
+    # --- 3. Perform backtesting ---
+    initial_capital = 10000.0
+    print("Conduct trade simulation...")
+    backtester = Backtester(signals, initial_capital)
+    portfolio = backtester.run_simulation()
+
+    # --- 4. Display and visualise results ---
+    final_value = portfolio['total'].iloc[-1]
+    print(f"\ninitial capital: ${initial_capital:,.2f}")
+    print(f"final capital:   ${final_value:,.2f}")
+    
+    print("\nCreate performance plot...")
+    plot_performance(portfolio, signals, ticker)
+    print("Backtest completed.")
 
 
 if __name__ == "__main__":

@@ -59,14 +59,17 @@ if st.sidebar.button("Run Backtest"):
             portfolio = backtester.run_simulation()
             
             # 4. Display Results
+            years = (end_date - start_date).days / 365.25
             st.success("Backtest completed successfully!")
             final_value = portfolio['total'].iloc[-1]
             total_return = (final_value - initial_capital) / initial_capital * 100
+            cagr = (1 + total_return / 100) ** (1 / years) - 1
             
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             col1.metric("Initial Capital", f"${initial_capital:,.2f}")
             col2.metric("Final Capital", f"${final_value:,.2f}")
             col3.metric("Total Return", f"{total_return:.2f}%")
+            col4.metric("Average return per year", f"{cagr*100:.2f}%")
 
             fig = plot_performance(portfolio, signals, ticker)
             st.plotly_chart(fig, use_container_width=True)

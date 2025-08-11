@@ -1,8 +1,10 @@
 import streamlit as st
 from datetime import date
+import pandas as pd
+from tickers import TICKER_LISTS
 
 # Import your classes and functions
-from financialdataimporter import YahooFinanceImporter
+from financialdataimporter import FinancialDataImporter, YahooFinanceSource
 from backtester.strategy import MovingAverageStrategy, RSIStrategy, BuyAndHoldStrategy
 from backtester.backtester import Backtester
 from backtester.visualization import plot_performance
@@ -18,11 +20,33 @@ STRATEGY_MAPPING = {
 st.set_page_config(page_title="Trading Backtester", layout="wide")
 st.title("Interactive Trading Strategy Backtester 📈")
 
+st.sidebar.header("Market & Ticker Selection")
+
+source_options = list(TICKER_LISTS.keys()) + ["Custom Ticker"]
+
+# 1. Select the Index
+source_choice = st.sidebar.selectbox(
+    "Choose a data source", 
+    source_options
+)
+
+if source_choice == "Custom Ticker":
+    ticker = st.sidebar.text_input("Enter Ticker Symbol").upper()
+else:
+    # An index was chosen, get the ticker list from our dictionary
+    tickers = TICKER_LISTS.get(source_choice, [])
+    if tickers:
+        ticker = st.sidebar.selectbox(
+            f"Choose a Ticker from {source_choice}", 
+            tickers
+        )
+    else:
+        ticker = st.sidebar.text_input("Enter Ticker Symbol", "AAPL").upper() # Fallback
+
 # --- Sidebar for input parameters ---
 st.sidebar.header("Backtest Parameters")
 
 # --- General Parameters ---
-ticker = st.sidebar.text_input("Ticker Symbol", "AAPL").upper()
 start_date = st.sidebar.date_input("Start Date", date(2020, 1, 1))
 end_date = st.sidebar.date_input("End Date", date.today())
 initial_capital = st.sidebar.number_input("Initial Capital ($)", min_value=1000, value=10000)
@@ -46,13 +70,15 @@ elif strategy_name == "Relative Strength Index (RSI)":
 if st.sidebar.button("Run Backtest"):
     with st.spinner("Loading data and running backtest..."):
         try:
-            # 1. Load Data
-            importer = YahooFinanceImporter()
+            yf_source = YahooFinanceSource()
+            importer = FinancialDataImporter(source=yf_source)
             stock_data = importer.get_data(ticker, start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d'))
             
             # 2. Generate Signals (using the selected strategy)
             strategy = SelectedStrategy(stock_data, strategy_params)
             signals = strategy.generate_signals()
+            fundamentals = importer.get_fundamentals(ticker)
+            company_name = fundamentals.get('longName', ticker) # Use ticker as fallback
             
             # 3. Run Simulation
             backtester = Backtester(signals, initial_capital)
@@ -60,7 +86,7 @@ if st.sidebar.button("Run Backtest"):
             
             # 4. Display Results
             years = (end_date - start_date).days / 365.25
-            st.success("Backtest completed successfully!")
+            st.success(f"Backtest for {company_name} ({ticker}) completed successfully!")
             final_value = portfolio['total'].iloc[-1]
             total_return = (final_value - initial_capital) / initial_capital * 100
             cagr = (1 + total_return / 100) ** (1 / years) - 1
